@@ -475,7 +475,12 @@ def version_diff(session_id: str, version_id: str, db: Session = Depends(get_db)
     return {"diff": _section_diff(before, after), "from": prev.id if prev else None, "to": current.id}
 
 
-def  _row(db: Session, session_id: str):
+def _row(db: Session, session_id: str):
+    """Fetch a session row or raise 404.  Returns 400 for malformed IDs."""
+    import re
+
+    if not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", session_id):
+        raise HTTPException(400, "session_id không đúng định dạng UUID")
     try:
         return ss.get_session(db, session_id)
     except KeyError:
