@@ -11,7 +11,7 @@ import { ExperimentStep } from '../steps/ExperimentStep'
 import { FeasibilityStep } from '../steps/FeasibilityStep'
 import { SpecDraftStep } from '../steps/SpecDraftStep'
 import { JudgeStep } from '../steps/JudgeStep'
-import { RevisionStep } from '../steps/RevistionStep'
+import { RevisionStep } from '../steps/RevisionStep'
 import { FinalStep } from '../steps/FinalStep'
 import type {
   ClaimEvidenceCard,
