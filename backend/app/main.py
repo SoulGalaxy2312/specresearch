@@ -91,12 +91,42 @@ app.include_router(router)
 
 @app.get("/health")
 def health():
+    """Liveness / readiness probe.
+
+    Returns database connectivity status and basic runtime info so
+    operators can verify the backend is fully functional — not just
+    that the process is alive.
+    """
+    from app.db import get_db
+    from app.db.models import SessionRow
+
     db_file = settings.sqlite_file
+
+    # Lightweight DB connectivity check
+    db_ok = False
+    session_count: int | None = None
+    try:
+        db = next(get_db())
+        db.execute(SessionRow.__table__.select().limit(0))  # essentially SELECT 1
+        session_count = db.query(SessionRow).count()
+        db_ok = True
+    except Exception:  # noqa: BLE001
+        db_ok = False
+    finally:
+        try:
+            db.close()
+        except Exception:  # noqa: BLE001
+            pass
+
     return {
-        "status": "ok",
+        "status": "ok" if db_ok else "degraded",
+        "version": app.version,
         "mock_llm": settings.mock_llm or not bool(settings.groq_api_key),
         "model": settings.groq_model,
         "database_url": settings.database_url,
         "db_file": str(db_file) if db_file else None,
         "db_exists": db_file.exists() if db_file else None,
+        "db_connected": db_ok,
+        "session_count": session_count,
     }
+
