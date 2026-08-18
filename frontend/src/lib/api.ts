@@ -1,10 +1,67 @@
+import type {
+  ClaimEvidenceCard,
+  DecomposeIssue,
+  DecomposeResolvePayload,
+  DiffItem,
+  ExperimentPlan,
+  FeasibilityEstimate,
+  GapProposal,
+  JudgeAggregate,
+  JudgeFinding,
+  RelatedWorkEntry,
+  SessionSummary,
+  SourceRef,
+  SpecCard,
+} from './types'
+
 const BASE = '/api/v1'
 
+type OkResponse = { ok: true }
+
+type RestateResponse = {
+  interpretations: { id: string; text: string }[]
+}
+
+type DecomposeResponse = {
+  cards: SpecCard[]
+  issues: DecomposeIssue[]
+  fsm_state: string
+}
+
+type RelatedWorkResponse = {
+  status: string
+  sources: SourceRef[]
+  related_work: RelatedWorkEntry[]
+  fsm_state?: string
+}
+
+type ClaimsResponse = {
+  contributions: string[]
+  claim_cards: ClaimEvidenceCard[]
+  fsm_state: string
+}
+
+type AssembleResponse = {
+  version_id: string
+  version_no?: number
+  markdown: string
+  fsm_state: string
+}
+
+type JudgeResponse = {
+  run_id: string
+  findings: JudgeFinding[]
+  readiness?: Record<string, string> | null
+  judge_type: string
+  fsm_state: string
+}
+
 type ReviseResponse = {
-  diffs: any[];
-  markdown: string;
-  revise_count: number;
-};
+  diff?: DiffItem[]
+  diffs?: DiffItem[]
+  markdown: string
+  revise_count: number
+}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const res = await fetch(`${BASE}${path}`, {
@@ -32,7 +89,7 @@ export const api = {
     ),
 
   getSession: (id: string) =>
-    request<any>(`/sessions/${id}`),
+    request<SessionSummary>(`/sessions/${id}`),
 
   setIdea: (id: string, idea: string) =>
     request(
@@ -44,7 +101,7 @@ export const api = {
     ),
 
   restate: (id: string) =>
-    request<{ interpretations: { id: string; text: string }[] }>(
+    request<RestateResponse>(
       `/sessions/${id}/restate`,
       { method: 'POST' }
     ),
@@ -54,7 +111,7 @@ export const api = {
     action: string,
     text?: string
   ) =>
-    request(
+    request<RestateResponse | OkResponse & { interpretation?: string; fsm_state?: string }>(
       `/sessions/${id}/restate/confirm`,
       {
         method: 'POST',
@@ -63,13 +120,13 @@ export const api = {
     ),
 
   decompose: (id: string) =>
-    request<any>(
+    request<DecomposeResponse>(
       `/sessions/${id}/decompose`,
       { method: 'POST' }
     ),
 
-  decomposeResolve: (id: string, payload: any) =>
-    request(
+  decomposeResolve: (id: string, payload: DecomposeResolvePayload) =>
+    request<{ ok: true; cards: SpecCard[] }>(
       `/sessions/${id}/decompose/resolve`,
       {
         method: 'POST',
@@ -78,7 +135,7 @@ export const api = {
     ),
 
   relatedWork: (id: string) =>
-    request<any>(
+    request<RelatedWorkResponse>(
       `/sessions/${id}/related-work`,
       { method: 'POST' }
     ),
@@ -91,7 +148,7 @@ export const api = {
       abstract?: string;
     }
   ) =>
-    request(
+    request<Pick<RelatedWorkResponse, 'sources' | 'related_work'>>(
       `/sessions/${id}/related-work/manual`,
       {
         method: 'POST',
@@ -100,7 +157,7 @@ export const api = {
     ),
 
   gap: (id: string) =>
-    request<any>(
+    request<GapProposal>(
       `/sessions/${id}/gap`,
       { method: 'POST' }
     ),
@@ -110,7 +167,7 @@ export const api = {
     choice: string,
     other_text?: string
   ) =>
-    request(
+    request<OkResponse & { chosen_gap_text?: string; fsm_state?: string }>(
       `/sessions/${id}/gap/choose`,
       {
         method: 'POST',
@@ -119,13 +176,13 @@ export const api = {
     ),
 
   claims: (id: string) =>
-    request<any>(
+    request<ClaimsResponse>(
       `/sessions/${id}/claims`,
       { method: 'POST' }
     ),
 
-  claimsConfirm: (id: string, payload: any) =>
-    request(
+  claimsConfirm: (id: string, payload: { contributions: string[]; claim_cards: ClaimEvidenceCard[] }) =>
+    request<OkResponse>(
       `/sessions/${id}/claims/confirm`,
       {
         method: 'POST',
@@ -134,19 +191,19 @@ export const api = {
     ),
 
   experiment: (id: string) =>
-    request<any>(
+    request<ExperimentPlan & { fsm_state: string }>(
       `/sessions/${id}/experiment`,
       { method: 'POST' }
     ),
 
   feasibility: (id: string) =>
-    request<any>(
+    request<FeasibilityEstimate & { fsm_state: string }>(
       `/sessions/${id}/feasibility`,
       { method: 'POST' }
     ),
 
   feasibilityChoose: (id: string, choice: string) =>
-    request(
+    request<FeasibilityEstimate>(
       `/sessions/${id}/feasibility/choose`,
       {
         method: 'POST',
@@ -155,19 +212,19 @@ export const api = {
     ),
 
   assemble: (id: string) =>
-    request<any>(
+    request<AssembleResponse>(
       `/sessions/${id}/spec/assemble`,
       { method: 'POST' }
     ),
 
   judge: (id: string, judgeType: string) =>
-    request<any>(
+    request<JudgeResponse>(
       `/sessions/${id}/judges/${judgeType}`,
       { method: 'POST' }
     ),
 
   aggregate: (id: string) =>
-    request<any>(
+    request<JudgeAggregate>(
       `/sessions/${id}/judges/aggregate`,
       { method: 'POST' }
     ),
@@ -186,13 +243,13 @@ export const api = {
     ),
 
   finalize: (id: string) =>
-    request<any>(
+    request<Pick<AssembleResponse, 'version_id' | 'markdown' | 'fsm_state'>>(
       `/sessions/${id}/finalize`,
       { method: 'POST' }
     ),
 
   export: (id: string, format: 'md' | 'json' = 'md') =>
-    request<any>(
+    request<Record<string, unknown> | { markdown: string }>(
       `/sessions/${id}/export?format=${format}`
     ),
 };
