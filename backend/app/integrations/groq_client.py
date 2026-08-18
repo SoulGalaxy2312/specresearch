@@ -17,16 +17,54 @@ def load_prompt(relative_path: str) -> str:
 
 def extract_json(text: str) -> Any:
     text = text.strip()
-    if (text.startswith("```")):
+    if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        match = re.search(r"\{[\s\S]*\}|\[[\s\S*\]", text)
-        if match:
-            return json.loads(match.group(0))
-        raise
+        pass
+
+    object_start = text.find("{")
+    array_start = text.find("[")
+    pairs = (("[", "]"), ("{", "}")) if array_start != -1 and (object_start == -1 or array_start < object_start) else (("{", "}"), ("[", "]"))
+    for start, end in pairs:
+        candidate = _extract_balanced_json(text, start, end)
+        if candidate:
+            return json.loads(candidate)
+
+    return json.loads(text)
+
+
+def _extract_balanced_json(text: str, start_char: str, end_char: str) -> str | None:
+    start = text.find(start_char)
+    if start == -1:
+        return None
+
+    depth = 0
+    in_string = False
+    escaped = False
+    for idx in range(start, len(text)):
+        char = text[idx]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+
+        if char == '"':
+            in_string = True
+        elif char == start_char:
+            depth += 1
+        elif char == end_char:
+            depth -= 1
+            if depth == 0:
+                return text[start : idx + 1]
+
+    return None
 
 class GroqClient:
     def __init__(self) -> None:
