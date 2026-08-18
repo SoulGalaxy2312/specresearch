@@ -80,7 +80,7 @@ class SourceRow(Base):
     openalex_id: Mapped[str] = mapped_column(String(128), default="")
     title: Mapped[str] = mapped_column(Text, default="")
     year: Mapped[int] = mapped_column(Integer, default=0)
-    authors_json: Mapped[str] = mapped_column(Text, default=[])
+    authors_json: Mapped[str] = mapped_column(Text, default="[]")
     abstract: Mapped[str] = mapped_column(Text, default="")
     doi_url: Mapped[str] = mapped_column(Text, default="")
     cited_by_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -102,6 +102,5 @@ def get_db():
         yield db
     finally:
         db.close()
-
 
 

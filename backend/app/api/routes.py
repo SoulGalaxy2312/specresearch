@@ -419,6 +419,7 @@ def revise(session_id: str, body: ReviseBody, db: Session = Depends(get_db)):
     return {
         "version_id": version.id,
         "diff": meta["diff"],
+        "diffs": meta["diff"],
         "summary": meta["summary"],
         "revise_count": row.revise_count,
         "markdown": md,
