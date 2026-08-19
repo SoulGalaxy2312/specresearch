@@ -13,6 +13,19 @@ import { SpecDraftStep } from '../steps/SpecDraftStep'
 import { JudgeStep } from '../steps/JudgeStep'
 import { RevisionStep } from '../steps/RevistionStep'
 import { FinalStep } from '../steps/FinalStep'
+import type {
+  ClaimEvidenceCard,
+  DecomposeIssue,
+  DiffItem,
+  ExperimentPlan,
+  FeasibilityEstimate,
+  GapProposal,
+  JudgeAggregate,
+  JudgeFinding,
+  RelatedWorkEntry,
+  SourceRef,
+  SpecCard,
+} from '../lib/types'
 
 const STEPS = [
   'Ý tưởng',
@@ -37,21 +50,21 @@ export function WizardPage() {
 
   const [idea, setIdea] = useState('')
   const [interpretations, setInterpretations] = useState<{ id: string; text: string }[]>([])
-  const [cards, setCards] = useState<any[]>([])
-  const [issues, setIssues] = useState<any[]>([])
+  const [cards, setCards] = useState<SpecCard[]>([])
+  const [issues, setIssues] = useState<DecomposeIssue[]>([])
   const [rwStatus, setRwStatus] = useState('OK')
-  const [sources, setSources] = useState<any[]>([])
-  const [relatedWork, setRelatedWork] = useState<any[]>([])
-  const [gap, setGap] = useState<any | null>(null)
+  const [sources, setSources] = useState<SourceRef[]>([])
+  const [relatedWork, setRelatedWork] = useState<RelatedWorkEntry[]>([])
+  const [gap, setGap] = useState<GapProposal | null>(null)
   const [contributions, setContributions] = useState<string[]>([])
-  const [claimCards, setClaimCards] = useState<any[]>([])
-  const [experiment, setExperiment] = useState<any | null>(null)
-  const [feasibility, setFeasibility] = useState<any | null>(null)
+  const [claimCards, setClaimCards] = useState<ClaimEvidenceCard[]>([])
+  const [experiment, setExperiment] = useState<ExperimentPlan | null>(null)
+  const [feasibility, setFeasibility] = useState<FeasibilityEstimate | null>(null)
   const [markdown, setMarkdown] = useState('')
   const [judgeProgress, setJudgeProgress] = useState<string[]>([])
-  const [findings, setFindings] = useState<any[]>([])
-  const [aggregate, setAggregate] = useState<any | null>(null)
-  const [diffs, setDiffs] = useState<any[]>([])
+  const [findings, setFindings] = useState<JudgeFinding[]>([])
+  const [aggregate, setAggregate] = useState<JudgeAggregate | null>(null)
+  const [diffs, setDiffs] = useState<DiffItem[]>([])
   const [reviseCount, setReviseCount] = useState(0)
 
   const ensureSession = useCallback(async () => {
@@ -62,17 +75,17 @@ export function WizardPage() {
     return res.session_id
   }, [sessionId])
 
-  const run = async (fn: () => Promise<void>) => {
+  const run = useCallback(async (fn: () => Promise<void>) => {
     setLoading(true)
     setError(null)
     try {
       await fn()
-    } catch (e: any) {
-      setError(e?.message || String(e))
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   const bootstrappedRef = useRef(false)
 
@@ -95,8 +108,7 @@ export function WizardPage() {
       setSessionId(res.session_id)
       setSid(res.session_id)
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [run])
 
   const content = useMemo(() => {
     switch (step) {
@@ -130,9 +142,9 @@ export function WizardPage() {
             onConfirm={(action, text) =>
               run(async () => {
                 const id = await ensureSession()
-                const data: any = await api.restateConfirm(id, action, text)
+                const data = await api.restateConfirm(id, action, text)
                 if (action === 'alternative') {
-                  setInterpretations(data.interpretations || [])
+                  setInterpretations('interpretations' in data ? data.interpretations : [])
                   return
                 }
                 setStep(2)
@@ -157,7 +169,7 @@ export function WizardPage() {
             onResolve={(payload) =>
               run(async () => {
                 const id = await ensureSession()
-                const data: any = await api.decomposeResolve(id, payload)
+                const data = await api.decomposeResolve(id, payload)
                 setCards(data.cards || cards)
               })
             }
@@ -183,7 +195,7 @@ export function WizardPage() {
             onAddManual={(payload) =>
               run(async () => {
                 const id = await ensureSession()
-                const data: any = await api.relatedWorkManual(id, payload)
+                const data = await api.relatedWorkManual(id, payload)
                 setSources(data.sources || [])
                 setRelatedWork(data.related_work || [])
               })
@@ -218,6 +230,8 @@ export function WizardPage() {
             contributions={contributions}
             claimCards={claimCards}
             loading={loading}
+            onContributionsChange={setContributions}
+            onClaimCardsChange={setClaimCards}
             onGenerate={() =>
               run(async () => {
                 const id = await ensureSession()
@@ -300,7 +314,7 @@ export function WizardPage() {
               run(async () => {
                 const id = await ensureSession()
                 const types = ['gap', 'contribution', 'experiment', 'evidence', 'readiness']
-                const all: any[] = []
+                const all: JudgeFinding[] = []
                 const done: string[] = []
                 for (const t of types) {
                   const res = await api.judge(id, t)
@@ -328,7 +342,7 @@ export function WizardPage() {
               run(async () => {
                 const id = await ensureSession()
                 const data = await api.revise(id, choice, other_text)
-                setDiffs(data.diffs || [])
+                setDiffs(data.diffs || data.diff || [])
                 setMarkdown(data.markdown || markdown)
                 setReviseCount(data.revise_count || reviseCount)
                 setAggregate(null)
@@ -397,6 +411,7 @@ export function WizardPage() {
     diffs,
     reviseCount,
     ensureSession,
+    run,
   ])
 
   return (
