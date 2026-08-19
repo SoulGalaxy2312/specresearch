@@ -1,23 +1,16 @@
-import { useEffect, useState } from 'react'
-
-type ClaimCard = {
-  id?: string
-  claim: string
-  baseline: string
-  metric: string
-  evidence: string
-  falsification: string
-}
+import type { ClaimEvidenceCard } from '../lib/types'
 
 type Props = {
   contributions: string[]
-  claimCards: ClaimCard[]
+  claimCards: ClaimEvidenceCard[]
   loading: boolean
   onGenerate: () => void
+  onContributionsChange: (contributions: string[]) => void
+  onClaimCardsChange: (claimCards: ClaimEvidenceCard[]) => void
   onConfirm: (
     payload: {
       contributions: string[]
-      claim_cards: ClaimCard[]
+      claim_cards: ClaimEvidenceCard[]
     }
   ) => void
 }
@@ -27,21 +20,15 @@ export function ClaimStep({
   claimCards,
   loading,
   onGenerate,
+  onContributionsChange,
+  onClaimCardsChange,
   onConfirm,
 }: Props) {
-  const [contribs, setContribs] = useState(contributions)
-  const [cards, setCards] = useState(claimCards)
-
-  useEffect(() => {
-    setContribs(contributions)
-    setCards(claimCards)
-  }, [contributions, claimCards])
-
   return (
     <div className="panel stack">
       <h2>6. Contribution & Claim Evidence</h2>
 
-      {!cards.length ? (
+      {!claimCards.length ? (
         <button
           className="btn"
           disabled={loading}
@@ -53,21 +40,21 @@ export function ClaimStep({
         <>
           <h3>Contributions</h3>
 
-          {contribs.map((c, i) => (
+          {contributions.map((c, i) => (
             <textarea
               key={i}
               value={c}
               onChange={(e) => {
-                const next = [...contribs]
+                const next = [...contributions]
                 next[i] = e.target.value
-                setContribs(next)
+                onContributionsChange(next)
               }}
             />
           ))}
 
           <h3>Claim Evidence cards</h3>
 
-          {cards.map((card, i) => (
+          {claimCards.map((card, i) => (
             <div
               className="spec-card stack"
               key={card.id || i}
@@ -90,12 +77,12 @@ export function ClaimStep({
                   <textarea
                     value={card[field]}
                     onChange={(e) => {
-                      const next = [...cards]
+                      const next = [...claimCards]
                       next[i] = {
                         ...next[i],
                         [field]: e.target.value,
                       }
-                      setCards(next)
+                      onClaimCardsChange(next)
                     }}
                   />
                 </label>
@@ -108,8 +95,8 @@ export function ClaimStep({
             disabled={loading}
             onClick={() =>
               onConfirm({
-                contributions: contribs,
-                claim_cards: cards,
+                contributions,
+                claim_cards: claimCards,
               })
             }
           >

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { CardBadge } from "../components/CardBadge";
+import type { RelatedWorkEntry, SourceRef } from "../lib/types";
 
 type Props = {
     status: string
-    sources: any[]
-    relatedWork: any[]
+    sources: SourceRef[]
+    relatedWork: RelatedWorkEntry[]
     loading: boolean
     onFetch: () => void
     onAddManual: (payload: { title: string; url?: string; abstract?: string }) => void
@@ -23,7 +24,7 @@ export function RelatedWorkStep({
     const [title, setTitle] = useState('')
     const [url, setUrl] = useState('')
     const [abstract, setAbstract] = useState('')
-    const byId = Object.fromEntries(sources.map((s) => [s.id, s]))
+    const byId: Record<string, SourceRef> = Object.fromEntries(sources.map((s) => [s.id, s]))
 
     return (
         <div className="panel stack">

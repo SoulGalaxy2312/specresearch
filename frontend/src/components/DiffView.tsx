@@ -1,4 +1,4 @@
-type DiffItem = { section: string; before: string; after: string }
+import type { DiffItem } from '../lib/types'
 
 export function DiffView({ diffs }: { diffs: DiffItem[] }) {
     if (!diffs?.length) {

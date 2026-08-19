@@ -1,35 +1,14 @@
 import { useState } from 'react'
 import { CardBadge } from '../components/CardBadge'
 import { ChoiceGroup } from '../components/ChoiceGroup'
-
-type Card = {
-  id: string
-  card_type: string
-  status: string
-  content: string
-}
-
-type Issue = {
-  card_hint?: string
-  question: string
-  options: {
-    key: string
-    label: string
-    explanation: string
-    example?: string | null
-  }[]
-}
+import type { DecomposeIssue, DecomposeResolvePayload, SpecCard } from '../lib/types'
 
 type Props = {
-  cards: Card[]
-  issues: Issue[]
+  cards: SpecCard[]
+  issues: DecomposeIssue[]
   loading: boolean
   onDecompose: () => void
-  onResolve: (payload: {
-    choice_key: string
-    choice_text: string
-    options: Issue['options']
-  }) => void
+  onResolve: (payload: DecomposeResolvePayload) => void
   onContinue: () => void
 }
 

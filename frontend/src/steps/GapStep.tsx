@@ -1,8 +1,9 @@
 import { useState } from "react"
 import { ChoiceGroup } from "../components/ChoiceGroup"
+import type { GapProposal } from "../lib/types"
 
 type Props = {
-  gap: any | null
+  gap: GapProposal | null
   loading: boolean
   onGenerate: () => void
   onChoose: (choice: string, other_text?: string) => void

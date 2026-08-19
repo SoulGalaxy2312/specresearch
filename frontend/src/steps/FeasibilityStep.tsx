@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { ChoiceGroup } from '../components/ChoiceGroup'
+import type { FeasibilityEstimate } from '../lib/types'
 
 type Props = {
-  feasibility: any | null
+  feasibility: FeasibilityEstimate | null
   loading: boolean
   onEstimate: () => void
   onChoose: (choice: string) => void

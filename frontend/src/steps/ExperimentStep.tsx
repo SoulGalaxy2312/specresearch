@@ -1,5 +1,7 @@
+import type { ExperimentPlan } from '../lib/types'
+
 type Props = {
-  experiment: any | null
+  experiment: ExperimentPlan | null
   loading: boolean
   onGenerate: () => void
   onContinue: () => void

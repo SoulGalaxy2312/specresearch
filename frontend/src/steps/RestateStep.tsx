@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChoiceGroup } from "../components/ChoiceGroup";
 
 type Interpretation = { id: string; text: string }
@@ -22,10 +22,8 @@ export function RestateStep({ interpretations, loading, onGenerate, onConfirm }:
     const [text, setText] = useState('')
     const [choice, setChoice] = useState<string | null>(null)
     const [other, setOther] = useState('')
-
-    useEffect(() => {
-        if (interpretations[0] && !text) setText(interpretations[0].text)
-    }, [interpretations, text])
+    const selectedInterpretation = interpretations.find((it) => it.id === selected) || interpretations[0]
+    const draftText = text || selectedInterpretation?.text || ''
 
     return (
         <div className="stack">
@@ -53,7 +51,7 @@ export function RestateStep({ interpretations, loading, onGenerate, onConfirm }:
                         ))}
                     </div>
 
-                    <textarea value={text} onChange={(e) => setText(e.target.value)} />
+                    <textarea value={draftText} onChange={(e) => setText(e.target.value)} />
                     <ChoiceGroup 
                         options={ACTIONS}
                         value={choice}
@@ -69,10 +67,10 @@ export function RestateStep({ interpretations, loading, onGenerate, onConfirm }:
                             disabled={!choice || loading}
                             onClick={() => {
                                 if (choice === 'alternative') {
-                                    onConfirm('alternative', text)
+                                    onConfirm('alternative', draftText)
                                     return
                                 }
-                                const finalText = choice === 'other' || choice === 'edit' ? other || text : text
+                                const finalText = choice === 'other' || choice === 'edit' ? other || draftText : draftText
                                 onConfirm(choice === 'other' ? 'other' : choice === 'edit' ? 'edit' : 'confirm', finalText)
                             }}
                         >

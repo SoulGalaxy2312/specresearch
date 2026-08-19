@@ -1,9 +1,10 @@
 import { CardBadge } from '../components/CardBadge'
+import type { AggregateEntry, JudgeAggregate, JudgeFinding } from '../lib/types'
 
 type Props = {
   progress: string[]
-  findings: any[]
-  aggregate: any | null
+  findings: JudgeFinding[]
+  aggregate: JudgeAggregate | null
   loading: boolean
   onRun: () => void
 }
@@ -25,7 +26,7 @@ export function JudgeStep({
       {!aggregate ? (
         <>
           <div className="row">
-            {['contribution', 'experiment', 'evidence', 'readiness'].map((s) => (
+            {['gap', 'contribution', 'experiment', 'evidence', 'readiness'].map((s) => (
               <span
                 key={s}
                 className={`step-pill ${
@@ -64,7 +65,7 @@ export function JudgeStep({
           </p>
 
           <h3>Đồng thuận</h3>
-          {(aggregate.consensus || []).map((c: any, i: number) => (
+          {(aggregate.consensus || []).map((c: AggregateEntry, i: number) => (
             <div className="spec-card" key={`c-${i}`}>
               <CardBadge status={c.severity} />
               {c.target}: {(c.issues || []).join(' | ')}
@@ -72,7 +73,7 @@ export function JudgeStep({
           ))}
 
           <h3>Bất đồng</h3>
-          {(aggregate.disagreement || []).map((d: any, i: number) => (
+          {(aggregate.disagreement || []).map((d: AggregateEntry, i: number) => (
             <div className="spec-card" key={`d-${i}`}>
               <CardBadge status={d.severity} />
               {d.target}: {(d.issues || []).join(' | ')}

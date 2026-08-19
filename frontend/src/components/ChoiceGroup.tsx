@@ -1,9 +1,4 @@
-type ChoiceOption = {
-    key: string
-    label: string
-    explanation: string
-    example?: string | null
-}
+import type { ChoiceOption } from '../lib/types'
 
 type Props = {
     options: ChoiceOption[],

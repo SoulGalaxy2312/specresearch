@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { ChoiceGroup } from "../components/ChoiceGroup";
 import { DiffView } from "../components/DiffView";
+import type { DiffItem, JudgeAggregate } from "../lib/types";
 
 type Props = {
-    aggregate: any | null
-    diffs: { section: string; before: string; after: string }[]
+    aggregate: JudgeAggregate | null
+    diffs: DiffItem[]
     reviseCount: number
     loading: boolean
     onRevise: (choice: string, other_text?: string) => void
