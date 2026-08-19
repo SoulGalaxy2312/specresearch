@@ -75,10 +75,7 @@ def create_session(db: Session = Depends(get_db)):
 
 @router.get("/sessions/{session_id}")
 def get_session(session_id: str, db: Session = Depends(get_db)):
-    try:
-        row = ss.get_session(db, session_id)
-    except KeyError:
-        raise HTTPException(404, "Session not found") from None
+    row = _row(db, session_id)
     return ss.session_summary(db, row)
 
 
