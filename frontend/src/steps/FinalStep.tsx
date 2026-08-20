@@ -1,13 +1,28 @@
+import { DiffView } from '../components/DiffView'
+import type { DiffItem, VersionSummary } from '../lib/types'
+
 type Props = {
   markdown: string
   onExportJson: () => void
   onCopy: () => void
+  versions: VersionSummary[]
+  selectedVersionId: string | null
+  versionDiff: DiffItem[]
+  loading: boolean
+  onLoadVersions: () => void
+  onSelectVersion: (versionId: string) => void
 }
 
 export function FinalStep({
   markdown,
   onExportJson,
-  onCopy
+  onCopy,
+  versions,
+  selectedVersionId,
+  versionDiff,
+  loading,
+  onLoadVersions,
+  onSelectVersion,
 }: Props) {
   return (
     <div className="panel stack">
@@ -28,6 +43,33 @@ export function FinalStep({
       </div>
 
       <div className="markdown-preview">{markdown}</div>
+
+      <h3>Lịch sử phiên bản</h3>
+      {versions.length ? (
+        <div className="row">
+          {versions.map((v) => (
+            <button
+              key={v.id}
+              className={`step-pill ${v.id === selectedVersionId ? 'active' : ''}`}
+              disabled={loading}
+              onClick={() => onSelectVersion(v.id)}
+            >
+              v{v.version_no} · {v.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button className="btn secondary" disabled={loading} onClick={onLoadVersions}>
+          {loading ? 'Đang tải...' : 'Xem lịch sử phiên bản'}
+        </button>
+      )}
+
+      {selectedVersionId ? (
+        <>
+          <div className="muted">So với phiên bản trước đó:</div>
+          <DiffView diffs={versionDiff} />
+        </>
+      ) : null}
     </div>
   )
 }

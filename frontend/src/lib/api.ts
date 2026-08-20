@@ -12,6 +12,8 @@ import type {
   SessionSummary,
   SourceRef,
   SpecCard,
+  VersionDiffResponse,
+  VersionSummary,
 } from './types'
 
 const BASE = '/api/v1'
@@ -252,4 +254,10 @@ export const api = {
     request<Record<string, unknown> | { markdown: string }>(
       `/sessions/${id}/export?format=${format}`
     ),
+
+  listVersions: (id: string) =>
+    request<VersionSummary[]>(`/sessions/${id}/versions`),
+
+  versionDiff: (id: string, versionId: string) =>
+    request<VersionDiffResponse>(`/sessions/${id}/versions/${versionId}/diff`),
 };

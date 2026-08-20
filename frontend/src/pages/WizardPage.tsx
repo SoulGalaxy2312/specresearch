@@ -25,6 +25,7 @@ import type {
   RelatedWorkEntry,
   SourceRef,
   SpecCard,
+  VersionSummary,
 } from '../lib/types'
 
 const STEPS = [
@@ -66,6 +67,9 @@ export function WizardPage() {
   const [aggregate, setAggregate] = useState<JudgeAggregate | null>(null)
   const [diffs, setDiffs] = useState<DiffItem[]>([])
   const [reviseCount, setReviseCount] = useState(0)
+  const [versions, setVersions] = useState<VersionSummary[]>([])
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
+  const [versionDiff, setVersionDiff] = useState<DiffItem[]>([])
 
   const ensureSession = useCallback(async () => {
     if (sessionId) return sessionId
@@ -370,6 +374,10 @@ export function WizardPage() {
         return (
           <FinalStep
             markdown={markdown}
+            versions={versions}
+            selectedVersionId={selectedVersionId}
+            versionDiff={versionDiff}
+            loading={loading}
             onCopy={() => navigator.clipboard.writeText(markdown)}
             onExportJson={() =>
               run(async () => {
@@ -382,6 +390,21 @@ export function WizardPage() {
                 a.download = 'specresearch-ast.json'
                 a.click()
                 URL.revokeObjectURL(url)
+              })
+            }
+            onLoadVersions={() =>
+              run(async () => {
+                const id = await ensureSession()
+                const data = await api.listVersions(id)
+                setVersions(data)
+              })
+            }
+            onSelectVersion={(versionId) =>
+              run(async () => {
+                const id = await ensureSession()
+                const data = await api.versionDiff(id, versionId)
+                setSelectedVersionId(versionId)
+                setVersionDiff(data.diff || [])
               })
             }
           />
@@ -410,6 +433,9 @@ export function WizardPage() {
     aggregate,
     diffs,
     reviseCount,
+    versions,
+    selectedVersionId,
+    versionDiff,
     ensureSession,
     run,
   ])
@@ -447,6 +473,9 @@ export function WizardPage() {
                 setDiffs([])
                 setJudgeProgress([])
                 setIdea('')
+                setVersions([])
+                setSelectedVersionId(null)
+                setVersionDiff([])
                 const res = await api.createSession()
                 setSessionId(res.session_id)
                 setSid(res.session_id)

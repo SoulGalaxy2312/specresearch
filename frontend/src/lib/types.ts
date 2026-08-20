@@ -124,6 +124,19 @@ export type SessionSummary = {
   ast: Record<string, unknown>
 }
 
+export type VersionSummary = {
+  id: string
+  version_no: number
+  label: string
+  created_at: string
+}
+
+export type VersionDiffResponse = {
+  diff: DiffItem[]
+  from: string | null
+  to: string
+}
+
 export type DecomposeResolvePayload = {
   choice_key: string
   choice_text: string
