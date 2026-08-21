@@ -37,7 +37,7 @@ export function FinalStep({
           Copy Markdown
         </button>
 
-        <button className="btn secondary" onClick={onExportJson}>
+        <button className="btn secondary" disabled={loading} onClick={onExportJson}>
           Tải / xem JSON AST
         </button>
       </div>
@@ -50,7 +50,7 @@ export function FinalStep({
           {versions.map((v) => (
             <button
               key={v.id}
-              className={`step-pill ${v.id === selectedVersionId ? 'active' : ''}`}
+              className={`version-pill ${v.id === selectedVersionId ? 'selected' : ''}`}
               disabled={loading}
               onClick={() => onSelectVersion(v.id)}
             >

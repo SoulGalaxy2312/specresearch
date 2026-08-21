@@ -29,7 +29,7 @@ export function JudgeStep({
             {['gap', 'contribution', 'experiment', 'evidence', 'readiness'].map((s) => (
               <span
                 key={s}
-                className={`step-pill ${
+                className={`progress-pill ${
                   progress.includes(s) ? 'done' : ''
                 }`}
               >

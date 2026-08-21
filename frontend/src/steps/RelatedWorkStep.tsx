@@ -79,7 +79,12 @@ export function RelatedWorkStep({
                         <h3>Thêm paper thủ công</h3>
                         <input type="text" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
                         <input type="url" placeholder="URL" value={url} onChange={(e) => setUrl(e.target.value)} />
-                        <textarea placeholder="Abstract (optional)" value={abstract} onChange={(e) => setAbstract(e.target.value)} />
+                        <textarea
+                            className="field-long"
+                            placeholder="Abstract (optional)"
+                            value={abstract}
+                            onChange={(e) => setAbstract(e.target.value)}
+                        />
                         <button
                             className="btn secondary"
                             disabled={!title.trim() || loading}

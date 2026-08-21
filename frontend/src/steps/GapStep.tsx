@@ -40,7 +40,7 @@ export function GapStep({ gap, loading, onGenerate, onChoose }: Props) {
 
           <button
             className="btn"
-            disabled={!choice}
+            disabled={!choice || loading}
             onClick={() => onChoose(choice!, choice === 'E' ? other : undefined)}
           >
             Chọn hướng contribution

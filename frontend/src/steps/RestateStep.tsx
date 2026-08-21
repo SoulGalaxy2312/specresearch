@@ -51,7 +51,7 @@ export function RestateStep({ interpretations, loading, onGenerate, onConfirm }:
                         ))}
                     </div>
 
-                    <textarea value={draftText} onChange={(e) => setText(e.target.value)} />
+                    <textarea className="field-long" value={draftText} onChange={(e) => setText(e.target.value)} />
                     <ChoiceGroup 
                         options={ACTIONS}
                         value={choice}

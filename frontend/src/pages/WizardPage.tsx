@@ -71,6 +71,14 @@ export function WizardPage() {
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
   const [versionDiff, setVersionDiff] = useState<DiffItem[]>([])
 
+  const [maxStep, setMaxStep] = useState(0)
+  const [stepErrors, setStepErrors] = useState<Set<number>>(new Set())
+
+  const advanceStep = useCallback((i: number) => {
+    setStep(i)
+    setMaxStep((m) => Math.max(m, i))
+  }, [])
+
   const ensureSession = useCallback(async () => {
     if (sessionId) return sessionId
     const res = await api.createSession()
@@ -82,14 +90,28 @@ export function WizardPage() {
   const run = useCallback(async (fn: () => Promise<void>) => {
     setLoading(true)
     setError(null)
+    setStepErrors((prev) => {
+      if (!prev.has(step)) return prev
+      const next = new Set(prev)
+      next.delete(step)
+      return next
+    })
     try {
       await fn()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
+      setStepErrors((prev) => new Set(prev).add(step))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [step])
+
+  const goToStep = useCallback(
+    (i: number) => {
+      if (i <= maxStep) setStep(i)
+    },
+    [maxStep]
+  )
 
   const bootstrappedRef = useRef(false)
 
@@ -126,7 +148,7 @@ export function WizardPage() {
               run(async () => {
                 const id = await ensureSession()
                 await api.setIdea(id, idea)
-                setStep(1)
+                advanceStep(1)
               })
             }
           />
@@ -151,7 +173,7 @@ export function WizardPage() {
                   setInterpretations('interpretations' in data ? data.interpretations : [])
                   return
                 }
-                setStep(2)
+                advanceStep(2)
               })
             }
           />
@@ -177,7 +199,7 @@ export function WizardPage() {
                 setCards(data.cards || cards)
               })
             }
-            onContinue={() => setStep(3)}
+            onContinue={() => advanceStep(3)}
           />
         )
       case 3:
@@ -204,7 +226,7 @@ export function WizardPage() {
                 setRelatedWork(data.related_work || [])
               })
             }
-            onContinue={() => setStep(4)}
+            onContinue={() => advanceStep(4)}
           />
         )
       case 4:
@@ -223,7 +245,7 @@ export function WizardPage() {
               run(async () => {
                 const id = await ensureSession()
                 await api.gapChoose(id, choice, other_text)
-                setStep(5)
+                advanceStep(5)
               })
             }
           />
@@ -250,7 +272,7 @@ export function WizardPage() {
                 await api.claimsConfirm(id, payload)
                 setContributions(payload.contributions)
                 setClaimCards(payload.claim_cards)
-                setStep(6)
+                advanceStep(6)
               })
             }
           />
@@ -267,7 +289,7 @@ export function WizardPage() {
                 setExperiment(data)
               })
             }
-            onContinue={() => setStep(7)}
+            onContinue={() => advanceStep(7)}
           />
         )
       case 7:
@@ -287,7 +309,7 @@ export function WizardPage() {
                 const id = await ensureSession()
                 const data = await api.feasibilityChoose(id, choice)
                 setFeasibility(data)
-                setStep(8)
+                advanceStep(8)
               })
             }
           />
@@ -304,7 +326,7 @@ export function WizardPage() {
                 setMarkdown(data.markdown || '')
               })
             }
-            onStartJudges={() => setStep(9)}
+            onStartJudges={() => advanceStep(9)}
           />
         )
       case 9:
@@ -330,7 +352,7 @@ export function WizardPage() {
                 const agg = await api.aggregate(id)
                 setAggregate(agg)
                 setReviseCount(agg.revise_count || 0)
-                setStep(10)
+                advanceStep(10)
               })
             }
           />
@@ -359,14 +381,14 @@ export function WizardPage() {
                 const id = await ensureSession()
                 const data = await api.finalize(id)
                 setMarkdown(data.markdown || markdown)
-                setStep(11)
+                advanceStep(11)
               })
             }
             onRejudge={() => {
               setAggregate(null)
               setFindings([])
               setJudgeProgress([])
-              setStep(9)
+              advanceStep(9)
             }}
           />
         )
@@ -438,63 +460,94 @@ export function WizardPage() {
     versionDiff,
     ensureSession,
     run,
+    advanceStep,
   ])
+
+  const startNewSession = () =>
+    run(async () => {
+      clearSessionId()
+      setSid(null)
+      advanceStep(0)
+      setMaxStep(0)
+      setStepErrors(new Set())
+      setInterpretations([])
+      setCards([])
+      setIssues([])
+      setRelatedWork([])
+      setSources([])
+      setGap(null)
+      setContributions([])
+      setClaimCards([])
+      setExperiment(null)
+      setFeasibility(null)
+      setMarkdown('')
+      setFindings([])
+      setAggregate(null)
+      setDiffs([])
+      setJudgeProgress([])
+      setIdea('')
+      setVersions([])
+      setSelectedVersionId(null)
+      setVersionDiff([])
+      const res = await api.createSession()
+      setSessionId(res.session_id)
+      setSid(res.session_id)
+    })
 
   return (
     <div className="app-shell">
-      <header className="hero">
-        <h1>SpecResearch Loop</h1>
-        <p>
-          Chuyển ý tưởng nghiên cứu mơ hồ thành research specification có bằng chứng, kế hoạch thí nghiệm và
-          phản biện đa Judge.
-        </p>
-        <div className="row" style={{ marginTop: '1rem' }}>
-          <button
-            className="btn secondary"
-            disabled={loading}
-            onClick={() =>
-              run(async () => {
-                clearSessionId()
-                setSid(null)
-                setStep(0)
-                setInterpretations([])
-                setCards([])
-                setIssues([])
-                setRelatedWork([])
-                setSources([])
-                setGap(null)
-                setContributions([])
-                setClaimCards([])
-                setExperiment(null)
-                setFeasibility(null)
-                setMarkdown('')
-                setFindings([])
-                setAggregate(null)
-                setDiffs([])
-                setJudgeProgress([])
-                setIdea('')
-                setVersions([])
-                setSelectedVersionId(null)
-                setVersionDiff([])
-                const res = await api.createSession()
-                setSessionId(res.session_id)
-                setSid(res.session_id)
-              })
-            }
-          >
+      <header className="doc-header">
+        <div className="doc-header-left">
+          <span className="doc-header-title">SpecResearch Loop</span>
+          <span className="doc-header-step">
+            Bước {step + 1}/{STEPS.length} — {STEPS[step]}
+          </span>
+        </div>
+        <div className="doc-header-right">
+          {sessionId ? <span className="session-chip">{sessionId.slice(0, 8)}…</span> : null}
+          <button className="btn secondary" disabled={loading} onClick={startNewSession}>
             Session mới
           </button>
-          {sessionId ? <span className="muted">Session: {sessionId.slice(0, 8)}…</span> : null}
         </div>
       </header>
 
-      <nav className="stepper">
-        {STEPS.map((label, i) => (
-          <span key={label} className={`step-pill ${i === step ? 'active' : i < step ? 'done' : ''}`}>
-            {i + 1}. {label}
-          </span>
-        ))}
+      <nav className="step-nav" aria-label="Các bước wizard">
+        {STEPS.map((label, i) => {
+          const state = i === step ? 'current' : i <= maxStep ? 'completed' : ''
+          return (
+            <button
+              key={label}
+              type="button"
+              className={`step-nav-item ${state}`}
+              disabled={i > maxStep}
+              aria-current={i === step ? 'step' : undefined}
+              onClick={() => goToStep(i)}
+            >
+              {i + 1}. {label}
+              {stepErrors.has(i) ? (
+                <span className="step-nav-flag" title="Cần xem lại">
+                  !
+                </span>
+              ) : null}
+            </button>
+          )
+        })}
       </nav>
+
+      <div className="step-nav-mobile">
+        <span className="step-nav-mobile-label">
+          Bước {step + 1}/{STEPS.length}
+          {stepErrors.has(step) ? ' · cần xem lại' : ''}
+        </span>
+        <select value={step} onChange={(e) => goToStep(Number(e.target.value))}>
+          {STEPS.map((label, i) => (
+            <option key={label} value={i} disabled={i > maxStep}>
+              {i + 1}. {label}
+              {stepErrors.has(i) ? ' ⚠' : ''}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {error ? <div className="error">{error}</div> : null}
       {content}

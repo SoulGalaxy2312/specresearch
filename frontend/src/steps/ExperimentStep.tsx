@@ -52,7 +52,7 @@ export function ExperimentStep({
             </ul>
           </div>
 
-          <button className="btn" onClick={onContinue}>
+          <button className="btn" disabled={loading} onClick={onContinue}>
             Tiếp tục - Feasibility
           </button>
         </>
