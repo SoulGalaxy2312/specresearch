@@ -109,6 +109,28 @@ specresearch/
 
 ---
 
+## Quality checks
+
+Chạy các kiểm tra giống CI trước khi commit:
+
+```bash
+# Backend
+cd backend
+source .venv/bin/activate
+python -m compileall -q app
+pytest -q
+
+# Frontend
+cd ../frontend
+npm run lint
+npx tsc -b --pretty false --noEmit
+npm run build
+```
+
+GitHub Actions tự động chạy các bước này khi push hoặc mở pull request vào `main`.
+
+---
+
 ## Lỗi thường gặp
 
 | Triệu chứng | Cách xử lý |
