@@ -40,7 +40,7 @@
 
 * { box-sizing: border-box; }
 html { min-width: 320px; background: var(--bg-app); }
-body { margin: 0; min-height: 100vh; background: var(--bg-app); }
+body { margin: 0; min-height: 100vh; overflow-x: hidden; background: var(--bg-app); }
 button, input, textarea, select { font: 0.92rem/1.45 var(--font-ui); }
 button { color: inherit; }
 a { color: var(--brand); text-underline-offset: 0.16em; }
@@ -232,6 +232,8 @@ a:hover { color: var(--brand-hover); }
 .stack { display: grid; gap: 0.9rem; }
 
 textarea, input[type="text"], input[type="url"] {
+  min-width: 0;
+  max-width: 100%;
   width: 100%;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -309,8 +311,8 @@ textarea.field-long {
 }
 .choice-item.selected .choice-key { border-color: var(--brand); background: var(--brand); color: #fff; }
 .choice-copy { min-width: 0; }
-.choice-description { color: var(--text-secondary); font-size: 0.82rem; }
-.choice-example { margin-top: 0.3rem; color: var(--text-muted); font: italic 0.88rem/1.5 var(--font-serif); }
+.choice-description { display: block; color: var(--text-secondary); font-size: 0.82rem; }
+.choice-example { display: block; margin-top: 0.3rem; color: var(--text-muted); font: italic 0.88rem/1.5 var(--font-serif); }
 .choice-other { margin-top: 0.25rem; }
 
 .card-grid { display: grid; gap: 0.75rem; }

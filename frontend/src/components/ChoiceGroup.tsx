@@ -20,25 +20,34 @@ export function ChoiceGroup({
     const isOther = value !== null && otherKeys.includes(value)
     return (
         <div className="stack">
-            <div className="choice-list">
+            <div className="choice-list" role="radiogroup" aria-label="Các phương án">
                 {options.map((opt) => (
                     <button
                         key={opt.key}
                         type="button"
+                        role="radio"
+                        aria-checked={value === opt.key}
                         className={`choice-item ${value === opt.key ? 'selected' : ''}`}
                         onClick={() => onSelect(opt.key)}
                     >
-                        <strong>
-                            {opt.key}. {opt.label}
-                        </strong>
-                        <div className="muted">{opt.explanation}</div>
-                        {opt.example ? <div className="muted">Ví dụ: {opt.example}</div> : null}
+                        <span className="choice-key" aria-hidden="true">
+                            {opt.key}
+                        </span>
+                        <span className="choice-copy">
+                            <strong>{opt.label}</strong>
+                            <span className="choice-description">{opt.explanation}</span>
+                            {opt.example ? (
+                                <span className="choice-example">Ví dụ: {opt.example}</span>
+                            ) : null}
+                        </span>
                     </button>
                 ))}
             </div>
             {isOther ? (
-                <textarea 
-                    placeholder="Nhập phương án Other..."
+                <textarea
+                    className="choice-other"
+                    aria-label="Nội dung phương án khác"
+                    placeholder="Mô tả phương án của bạn…"
                     value={otherText}
                     onChange={(e) => onOtherText(e.target.value)}
                 />

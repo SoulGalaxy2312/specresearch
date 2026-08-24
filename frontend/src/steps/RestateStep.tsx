@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChoiceGroup } from "../components/ChoiceGroup";
+import { useState } from 'react'
+import { ChoiceGroup } from '../components/ChoiceGroup'
 
 type Interpretation = { id: string; text: string }
 
@@ -13,8 +13,8 @@ type Props = {
 const ACTIONS = [
     { key: 'confirm', label: 'Xác nhận', explanation: 'Hệ thống đang hiểu đúng ý bạn', example: null },
     { key: 'edit', label: 'Chỉnh sửa', explanation: 'Sửa diễn giải rồi xác nhận.', example: null },
-    { key: 'alternative', label: 'Yêu cầu ví dụ khác', explanation: 'Sinh diễn giải khác', example: null },
-    { key: 'other', label: 'Other', explanation: 'Nhập cách hiểu riêng.', example: null },
+    { key: 'alternative', label: 'Phương án khác', explanation: 'Sinh thêm một cách diễn giải để so sánh.', example: null },
+    { key: 'other', label: 'Tự diễn giải', explanation: 'Viết lại cách hiểu theo ngôn ngữ của bạn.', example: null },
 ]
 
 export function RestateStep({ interpretations, loading, onGenerate, onConfirm }: Props) {
@@ -26,7 +26,7 @@ export function RestateStep({ interpretations, loading, onGenerate, onConfirm }:
     const draftText = text || selectedInterpretation?.text || ''
 
     return (
-        <div className="stack">
+        <div className="panel stack">
             <h2>2. Diễn giải lại ý tưởng</h2>
             <p className="muted">Tôi đang hiểu đúng ý tưởng của bạn không?</p>
             {!interpretations.length ? (
@@ -52,7 +52,7 @@ export function RestateStep({ interpretations, loading, onGenerate, onConfirm }:
                     </div>
 
                     <textarea className="field-long" value={draftText} onChange={(e) => setText(e.target.value)} />
-                    <ChoiceGroup 
+                    <ChoiceGroup
                         options={ACTIONS}
                         value={choice}
                         otherText={other}
