@@ -22,7 +22,7 @@ def create_session(db: Session) -> SessionRow:
         working_ast_json=SpecAST().model_dump_json(),
     )
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row
 
@@ -43,7 +43,7 @@ def save_ast(db: Session, row: SessionRow, ast: SpecAST) -> None:
     row.working_ast_json = ast.model_dump_json()
     row.updated_at = now()
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
 
 
@@ -56,7 +56,7 @@ def set_state(db: Session, row: SessionRow, target: FsmState) -> None:
     row.fsm_state = target.value
     row.updated_at = now()
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
 
 
@@ -64,7 +64,7 @@ def force_state(db: Session, row: SessionRow, target: FsmState) -> None:
     row.fsm_state = target.value
     row.updated_at = now()
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
 
 
@@ -85,7 +85,7 @@ def record_decision(
         choice_text=choice_text,
     )
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row
 
@@ -113,7 +113,7 @@ def snapshot_version(
         markdown=markdown,
     )
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row
 
@@ -152,7 +152,7 @@ def upsert_sources(db: Session, session_id: str, sources: list[dict[str, Any]]) 
                 cited_by_count=s.get("cited_by_count") or 0,
             )
         )
-    db.commit()
+    db.flush()
 
 
 def create_judge_run(db: Session, session_id: str, version_id: str, round_no: int) -> JudgeRunRow:
@@ -164,7 +164,7 @@ def create_judge_run(db: Session, session_id: str, version_id: str, round_no: in
         status="in_progress",
     )
     db.add(row)
-    db.commit()
+    db.flush()
     db.refresh(row)
     return row
 
@@ -191,7 +191,7 @@ def add_judge_findings(
                 raw_json=json.dumps(raw, ensure_ascii=False),
             )
         )
-    db.commit()
+    db.flush()
 
 
 def get_latest_judge_run(db: Session, session_id: str) -> JudgeRunRow | None:

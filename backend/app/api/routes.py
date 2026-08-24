@@ -353,7 +353,6 @@ def judge_aggregate(session_id: str, db: Session = Depends(get_db)):
         run.aggregate_json = json.dumps(agg, ensure_ascii=False)
         run.status = "completed"
         db.add(run)
-        db.commit()
     ss.force_state(db, row, FsmState.REVISION)
     return {**agg, "fsm_state": row.fsm_state, "revise_count": row.revise_count}
 
@@ -410,8 +409,6 @@ def revise(session_id: str, body: ReviseBody, db: Session = Depends(get_db)):
     md = assemble_markdown(ast)
     version = ss.snapshot_version(db, session_id, ast, md, label=f"revise-{row.revise_count}")
     ss.save_ast(db, row, ast)
-    db.add(row)
-    db.commit()
     ss.force_state(db, row, FsmState.JUDGING)
     return {
         "version_id": version.id,
