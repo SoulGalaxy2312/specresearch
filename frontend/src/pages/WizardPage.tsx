@@ -43,6 +43,13 @@ const STEPS = [
   'Final',
 ]
 
+const STEP_GROUPS = [
+  { label: 'Định hình', steps: [0, 1, 2] },
+  { label: 'Grounding', steps: [3, 4] },
+  { label: 'Thiết kế', steps: [5, 6, 7] },
+  { label: 'Phản biện', steps: [8, 9, 10, 11] },
+]
+
 export function WizardPage() {
   const [sessionId, setSid] = useState<string | null>(getSessionId())
   const [step, setStep] = useState(0)
@@ -494,63 +501,101 @@ export function WizardPage() {
       setSid(res.session_id)
     })
 
+  const currentGroup = STEP_GROUPS.find((group) => group.steps.includes(step))?.label
+
   return (
     <div className="app-shell">
       <header className="doc-header">
-        <div className="doc-header-left">
-          <span className="doc-header-title">SpecResearch Loop</span>
-          <span className="doc-header-step">
-            Bước {step + 1}/{STEPS.length} — {STEPS[step]}
+        <div className="brand-lockup">
+          <span className="brand-monogram" aria-hidden="true">
+            SR
           </span>
+          <div>
+            <div className="doc-header-title">SpecResearch</div>
+            <div className="doc-header-subtitle">Research specification workbench</div>
+          </div>
         </div>
         <div className="doc-header-right">
-          {sessionId ? <span className="session-chip">{sessionId.slice(0, 8)}…</span> : null}
-          <button className="btn secondary" disabled={loading} onClick={startNewSession}>
-            Session mới
+          <div className="step-position" aria-label={`Bước ${step + 1} trên ${STEPS.length}`}>
+            <span>Đang làm việc</span>
+            <strong>{String(step + 1).padStart(2, '0')}</strong>
+            <span>/ {STEPS.length}</span>
+          </div>
+          {sessionId ? (
+            <span className="session-chip" title={sessionId}>
+              Session {sessionId.slice(0, 8)}
+            </span>
+          ) : null}
+          <button className="text-button" disabled={loading} onClick={startNewSession}>
+            Tạo session mới
           </button>
         </div>
       </header>
 
-      <nav className="step-nav" aria-label="Các bước wizard">
-        {STEPS.map((label, i) => {
-          const state = i === step ? 'current' : i <= maxStep ? 'completed' : ''
-          return (
-            <button
-              key={label}
-              type="button"
-              className={`step-nav-item ${state}`}
-              disabled={i > maxStep}
-              aria-current={i === step ? 'step' : undefined}
-              onClick={() => goToStep(i)}
-            >
-              {i + 1}. {label}
-              {stepErrors.has(i) ? (
-                <span className="step-nav-flag" title="Cần xem lại">
-                  !
-                </span>
-              ) : null}
-            </button>
-          )
-        })}
-      </nav>
-
-      <div className="step-nav-mobile">
-        <span className="step-nav-mobile-label">
-          Bước {step + 1}/{STEPS.length}
-          {stepErrors.has(step) ? ' · cần xem lại' : ''}
-        </span>
-        <select value={step} onChange={(e) => goToStep(Number(e.target.value))}>
-          {STEPS.map((label, i) => (
-            <option key={label} value={i} disabled={i > maxStep}>
-              {i + 1}. {label}
-              {stepErrors.has(i) ? ' ⚠' : ''}
-            </option>
+      <div className="workspace-layout">
+        <nav className="step-nav" aria-label="Quy trình xây dựng research specification">
+          {STEP_GROUPS.map((group) => (
+            <div className="workflow-group" key={group.label}>
+              <div className="workflow-group-label">{group.label}</div>
+              {group.steps.map((i) => {
+                const state = i === step ? 'current' : i <= maxStep ? 'completed' : ''
+                return (
+                  <button
+                    key={STEPS[i]}
+                    type="button"
+                    className={`step-nav-item ${state}`}
+                    disabled={i > maxStep}
+                    aria-current={i === step ? 'step' : undefined}
+                    onClick={() => goToStep(i)}
+                  >
+                    <span className="step-nav-number">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="step-nav-label">{STEPS[i]}</span>
+                    {stepErrors.has(i) ? (
+                      <span className="step-nav-flag" title="Cần xem lại">
+                        !
+                      </span>
+                    ) : i < maxStep ? (
+                      <span className="step-nav-check" aria-label="Đã hoàn tất">
+                        ✓
+                      </span>
+                    ) : null}
+                  </button>
+                )
+              })}
+            </div>
           ))}
-        </select>
-      </div>
+        </nav>
 
-      {error ? <div className="error">{error}</div> : null}
-      {content}
+        <main className="workspace-main" aria-busy={loading}>
+          <div className="step-nav-mobile">
+            <span className="step-nav-mobile-label">
+              {currentGroup} · Bước {step + 1}/{STEPS.length}
+              {stepErrors.has(step) ? ' · cần xem lại' : ''}
+            </span>
+            <select value={step} onChange={(e) => goToStep(Number(e.target.value))}>
+              {STEPS.map((label, i) => (
+                <option key={label} value={i} disabled={i > maxStep}>
+                  {i + 1}. {label}
+                  {stepErrors.has(i) ? ' ⚠' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="workspace-context">
+            <span>{currentGroup}</span>
+            <span aria-hidden="true">/</span>
+            <strong>{STEPS[step]}</strong>
+            {loading ? <em>Đang xử lý…</em> : null}
+          </div>
+          {error ? (
+            <div className="error" role="alert">
+              {error}
+            </div>
+          ) : null}
+          {content}
+        </main>
+      </div>
     </div>
   )
 }
