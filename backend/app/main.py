@@ -4,11 +4,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.routes import router
 from app.config import get_settings
 from app.db import init_db
+from app.db import models as db_models
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -41,10 +44,15 @@ settings = get_settings()
 logger = logging.getLogger("specresearch")
 
 
+def _redacted_database_url(database_url: str) -> str:
+    """Render a database URL without exposing its password."""
+    return make_url(database_url).render_as_string(hide_password=True)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
-    logger.info("Database URL: %s", settings.database_url)
+    logger.info("Database URL: %s", _redacted_database_url(settings.database_url))
     db_file = settings.sqlite_file
     if db_file is not None:
         logger.info("SQLite file: %s (exists=%s)", db_file, db_file.exists())
@@ -61,16 +69,27 @@ class _RequestLogMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         start = time.perf_counter()
-        response = await call_next(request)
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        logger.info(
-            "%s %s → %s (%.0f ms)",
-            request.method,
-            request.url.path,
-            response.status_code,
-            elapsed_ms,
-        )
-        return response
+        try:
+            response = await call_next(request)
+        except Exception:
+            elapsed_ms = (time.perf_counter() - start) * 1000
+            logger.exception(
+                "%s %s → unhandled error (%.0f ms)",
+                request.method,
+                request.url.path,
+                elapsed_ms,
+            )
+            raise
+        else:
+            elapsed_ms = (time.perf_counter() - start) * 1000
+            logger.info(
+                "%s %s → %s (%.0f ms)",
+                request.method,
+                request.url.path,
+                response.status_code,
+                elapsed_ms,
+            )
+            return response
 
 
 # ---------------------------------------------------------------------------
@@ -97,36 +116,27 @@ def health():
     operators can verify the backend is fully functional — not just
     that the process is alive.
     """
-    from app.db import get_db
-    from app.db.models import SessionRow
-
     db_file = settings.sqlite_file
 
     # Lightweight DB connectivity check
     db_ok = False
     session_count: int | None = None
     try:
-        db = next(get_db())
-        db.execute(SessionRow.__table__.select().limit(0))  # essentially SELECT 1
-        session_count = db.query(SessionRow).count()
-        db_ok = True
+        with db_models.SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+            session_count = db.query(db_models.SessionRow).count()
+            db_ok = True
     except Exception:  # noqa: BLE001
-        db_ok = False
-    finally:
-        try:
-            db.close()
-        except Exception:  # noqa: BLE001
-            pass
+        logger.exception("Database health check failed")
 
     return {
         "status": "ok" if db_ok else "degraded",
         "version": app.version,
         "mock_llm": settings.mock_llm or not bool(settings.groq_api_key),
         "model": settings.groq_model,
-        "database_url": settings.database_url,
+        "database_url": _redacted_database_url(settings.database_url),
         "db_file": str(db_file) if db_file else None,
         "db_exists": db_file.exists() if db_file else None,
         "db_connected": db_ok,
         "session_count": session_count,
     }
-

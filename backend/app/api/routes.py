@@ -445,6 +445,7 @@ def export_spec(session_id: str, format: str = Query("md"), db: Session = Depend
 
 @router.get("/sessions/{session_id}/versions")
 def versions(session_id: str, db: Session = Depends(get_db)):
+    _row(db, session_id)
     rows = ss.list_versions(db, session_id)
     return [
         {"id": v.id, "version_no": v.version_no, "label": v.label, "created_at": v.created_at.isoformat()}
@@ -454,6 +455,7 @@ def versions(session_id: str, db: Session = Depends(get_db)):
 
 @router.get("/sessions/{session_id}/versions/{version_id}/diff")
 def version_diff(session_id: str, version_id: str, db: Session = Depends(get_db)):
+    _row(db, session_id)
     rows = ss.list_versions(db, session_id)
     current = next((v for v in rows if v.id == version_id), None)
     if not current:

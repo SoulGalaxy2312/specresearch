@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 from uuid import uuid4
 
 import httpx
 
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
+
 
 class OpenAlexClient:
     BASE = "https://api.openalex.org/works"
@@ -24,7 +28,11 @@ class OpenAlexClient:
                 resp = client.get(self.BASE, params = params)
                 resp.raise_for_status()
                 data = resp.json()
-        except Exception: # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "OpenAlex search degraded (error=%s)",
+                type(exc).__name__,
+            )
             return []
 
         results: list[dict[str, Any]] = []

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Any, Optional
@@ -8,6 +9,7 @@ from typing import Any, Optional
 from app.config import get_settings
 
 PROMPTS_ROOT = Path(__file__).resolve().parents[3] / "prompts"
+logger = logging.getLogger(__name__)
 
 def load_prompt(relative_path: str) -> str:
     path = PROMPTS_ROOT / relative_path
@@ -87,7 +89,7 @@ class GroqClient:
 
         client = Groq(api_key=self.settings.groq_api_key)
         last_err: Exception | None = None
-        for _ in range(2):
+        for attempt in range(1, 3):
             try:
                 completion = client.chat.completions.create(
                     model=self.settings.groq_model,
@@ -100,10 +102,16 @@ class GroqClient:
                 )
                 content = completion.choices[0].message.content or "{}"
                 return extract_json(content)
-            except Exception as exc: # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
                 last_err = exc
+                logger.warning(
+                    "Groq JSON request failed (attempt %s/2, model=%s, error=%s)",
+                    attempt,
+                    self.settings.groq_model,
+                    type(exc).__name__,
+                )
 
-        raise RuntimeError(f"Groq call failed after retry: {last_err}")
+        raise RuntimeError("Groq call failed after retry") from last_err
 
     def chat_text(self, system: str, user: str, *, temperature: float = 0.3, mock_text: str = "") -> str:
         if self.settings.mock_llm or not self.settings.groq_api_key:
@@ -112,7 +120,7 @@ class GroqClient:
 
         client = Groq(api_key=self.settings.groq_api_key)
         last_err: Exception | None = None
-        for _ in range(2):
+        for attempt in range(1, 3):
             try:
                 completion = client.chat.completions.create(
                     model=self.settings.groq_model,
@@ -123,6 +131,12 @@ class GroqClient:
                     ]
                 )
                 return completion.choices[0].message.content or ""
-            except Exception as exc: # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
                 last_err = exc
-        raise RuntimeError(f"Groq call failed after retry: {last_err}")
+                logger.warning(
+                    "Groq text request failed (attempt %s/2, model=%s, error=%s)",
+                    attempt,
+                    self.settings.groq_model,
+                    type(exc).__name__,
+                )
+        raise RuntimeError("Groq call failed after retry") from last_err
