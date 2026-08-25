@@ -21,6 +21,12 @@ def run_related_work(ast: SpecAST, limit: int = 10) -> SpecAST:
             "automatic prompt engineering OPRO DSPy",
         ]
     }
+    print("===== RELATED WORK: GENERATE QUERIES =====")
+    print("system length =", len(system))
+    print("user length =", len(
+        f"Interpretation:\n{ast.interpretation}\nCards:\n"
+        + "\n".join(f"- {c.card_type}: {c.content}" for c in ast.cards)
+    ))
     kw = client.chat_json(
         system,
         f"Interpretation:\n{ast.interpretation}\nCards:\n" + "\n".join(f"- {c.card_type}: {c.content}" for c in ast.cards),
@@ -43,7 +49,7 @@ def run_related_work(ast: SpecAST, limit: int = 10) -> SpecAST:
             continue
         seen.add(t)
         unique.append(s)
-    unique = unique[:limit]
+    unique = unique[:8]
 
     if not unique:
         degraded = True
@@ -68,7 +74,11 @@ def run_related_work(ast: SpecAST, limit: int = 10) -> SpecAST:
         "\"open_point\":\"...\",\"statement_for_verify\":\"...\"}]}"
     )
     papers_blob = "\n\n".join(
-        f"ID:{s.id}\nTitle:{s.title}\nYear:{s.year}\nAbstract:{(s.abstract or '')[:800]}" for s in sources
+        f"ID:{s.id}\n"
+        f"Title:{s.title}\n"
+        f"Year:{s.year}\n"
+        f"Abstract:{(s.abstract or '')[:500]}"
+        for s in sources
     )
     mock_entries = {
         "entries": [
@@ -94,7 +104,15 @@ def run_related_work(ast: SpecAST, limit: int = 10) -> SpecAST:
             for s in sources
         ]
 
+    print("===== RELATED WORK: SYNTHESIZE =====")
+    print("system length =", len(synth_system))
+    print("papers_blob length =", len(papers_blob))
+    print("papers count =", len(sources))
+
+    print("Calling synth chat_json...")
     synth = client.chat_json(synth_system, papers_blob, mock_payload=mock_entries)
+    print("Synth chat_json succeeded")
+    
     entries: list[RelatedWorkEntry] = []
     source_by_id = {s.id: s for s in sources}
     for e in synth.get("entries", []):
