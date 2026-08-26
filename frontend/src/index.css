@@ -303,14 +303,18 @@ textarea.field-long {
 .choice-key {
   display: grid;
   width: 1.8rem;
+  min-width: 1.8rem;
   height: 1.8rem;
   place-items: center;
   border: 1px solid var(--border-strong);
   color: var(--text-secondary);
   font: 650 0.7rem/1 var(--font-mono);
+  overflow: hidden;
+  white-space: nowrap;
 }
 .choice-item.selected .choice-key { border-color: var(--brand); background: var(--brand); color: #fff; }
-.choice-copy { min-width: 0; }
+.choice-copy { display: grid; min-width: 0; gap: 0.12rem; }
+.choice-copy > * { min-width: 0; overflow-wrap: anywhere; }
 .choice-description { display: block; color: var(--text-secondary); font-size: 0.82rem; }
 .choice-example { display: block; margin-top: 0.3rem; color: var(--text-muted); font: italic 0.88rem/1.5 var(--font-serif); }
 .choice-other { margin-top: 0.25rem; }

@@ -18,10 +18,15 @@ export function ChoiceGroup({
     otherKeys = ['E', 'other', 'Other'],
 }: Props) {
     const isOther = value !== null && otherKeys.includes(value)
+    const displayKey = (key: string, index: number) => {
+        if (/^[A-Z]$/i.test(key)) return key.toUpperCase()
+        return String.fromCharCode(65 + index)
+    }
+
     return (
         <div className="stack">
             <div className="choice-list" role="radiogroup" aria-label="Các phương án">
-                {options.map((opt) => (
+                {options.map((opt, index) => (
                     <button
                         key={opt.key}
                         type="button"
@@ -31,7 +36,7 @@ export function ChoiceGroup({
                         onClick={() => onSelect(opt.key)}
                     >
                         <span className="choice-key" aria-hidden="true">
-                            {opt.key}
+                            {displayKey(opt.key, index)}
                         </span>
                         <span className="choice-copy">
                             <strong>{opt.label}</strong>

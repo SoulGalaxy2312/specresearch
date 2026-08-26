@@ -57,7 +57,7 @@ export function RevisionStep({
                     disabled={loading}
                     onClick={onFinalize}
                 >
-                    Finalize ngay
+                    Hoàn tất ngay
                 </button>
 
                 {diffs.length ? (
