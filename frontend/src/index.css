@@ -319,6 +319,26 @@ textarea.field-long {
 .choice-example { display: block; margin-top: 0.3rem; color: var(--text-muted); font: italic 0.88rem/1.5 var(--font-serif); }
 .choice-other { margin-top: 0.25rem; }
 
+.interpretation-item {
+  display: block;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid transparent;
+  border-left: 3px solid transparent;
+  background: var(--brand-subtle);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.interpretation-item:hover { border-color: var(--border-subtle); }
+.interpretation-item.selected {
+  border-color: var(--border-subtle);
+  border-left-color: var(--brand);
+  background: rgba(224, 235, 229, 0.7);
+}
+
 .card-grid { display: grid; gap: 0.75rem; }
 .card-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .spec-card {

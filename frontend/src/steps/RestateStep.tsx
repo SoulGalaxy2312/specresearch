@@ -40,7 +40,7 @@ export function RestateStep({ interpretations, loading, onGenerate, onConfirm }:
                             <button
                                 key={it.id}
                                 type="button"
-                                className={`choice-item ${selected === it.id ? 'selected' : ''}`}
+                                className={`interpretation-item ${selected === it.id ? 'selected' : ''}`}
                                 onClick={() => {
                                     setSelected(it.id)
                                     setText(it.text)
