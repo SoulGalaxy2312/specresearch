@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.db.models import (
@@ -44,8 +45,18 @@ def get_session(db: Session, session_id: str) -> SessionRow:
 
 
 def list_sessions(db: Session, limit: int = 10, offset: int = 0) -> tuple[list[SessionRow], int]:
-    query = db.query(SessionRow).order_by(SessionRow.updated_at.desc())
+    has_idea = case((SessionRow.raw_idea == "", 1), else_=0)
+    query = db.query(SessionRow).order_by(has_idea.asc(), SessionRow.updated_at.desc())
     return query.offset(offset).limit(limit).all(), query.count()
+
+
+def session_metrics(db: Session, session_id: str) -> dict[str, int]:
+    return {
+        "source_count": db.query(SourceRow).filter(SourceRow.session_id == session_id).count(),
+        "version_count": db.query(SpecVersionRow).filter(SpecVersionRow.session_id == session_id).count(),
+        "chat_count": db.query(ChatMessageRow).filter(ChatMessageRow.session_id == session_id).count(),
+        "decision_count": db.query(DecisionRow).filter(DecisionRow.session_id == session_id).count(),
+    }
 
 
 def load_ast(row: SessionRow) -> SpecAST:
@@ -237,6 +248,22 @@ def list_knowledge(db: Session, category: str | None = None) -> list[dict[str, A
     ]
 
 
+def get_knowledge_item(db: Session, item_id: str) -> dict[str, Any]:
+    row = db.get(KnowledgeItemRow, item_id)
+    if not row:
+        raise KeyError("Knowledge item not found")
+    return {
+        "id": row.id,
+        "category": row.category,
+        "title": row.title,
+        "summary": row.summary,
+        "source_url": row.source_url,
+        "tags": json.loads(row.tags_json or "[]"),
+        "payload": json.loads(row.payload_json or "{}"),
+        "created_at": row.created_at.isoformat(),
+    }
+
+
 def add_chat_message(
     db: Session,
     session_id: str,
@@ -304,4 +331,5 @@ def session_summary(db: Session, row: SessionRow) -> dict[str, Any]:
             for d in decisions
         ],
         "chat_messages": chat_messages,
+        "metrics": session_metrics(db, row.id),
     }

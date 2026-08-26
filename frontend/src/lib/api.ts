@@ -104,6 +104,9 @@ export const api = {
       `/knowledge${category ? `?category=${encodeURIComponent(category)}` : ''}`
     ),
 
+  getKnowledge: (id: string) =>
+    request<KnowledgeItem>(`/knowledge/${id}`),
+
   listChat: (id: string) =>
     request<{ items: ChatMessage[] }>(`/sessions/${id}/chat`),
 

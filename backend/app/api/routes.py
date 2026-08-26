@@ -95,6 +95,7 @@ def list_sessions(
                 "revise_count": row.revise_count,
                 "created_at": row.created_at.isoformat(),
                 "updated_at": row.updated_at.isoformat(),
+                **ss.session_metrics(db, row.id),
             }
             for row in rows
         ],
@@ -507,6 +508,14 @@ def version_diff(session_id: str, version_id: str, db: Session = Depends(get_db)
 @router.get("/knowledge")
 def knowledge(category: Optional[str] = None, db: Session = Depends(get_db)):
     return {"items": ss.list_knowledge(db, category=category)}
+
+
+@router.get("/knowledge/{item_id}")
+def knowledge_item(item_id: str, db: Session = Depends(get_db)):
+    try:
+        return ss.get_knowledge_item(db, item_id)
+    except KeyError:
+        raise HTTPException(404, "Knowledge item not found") from None
 
 
 @router.get("/sessions/{session_id}/chat")

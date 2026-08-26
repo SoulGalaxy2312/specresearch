@@ -114,6 +114,10 @@ export type SessionListItem = {
   fsm_state: string
   raw_idea: string
   revise_count: number
+  source_count: number
+  version_count: number
+  chat_count: number
+  decision_count: number
   created_at: string
   updated_at: string
 }
@@ -167,6 +171,12 @@ export type SessionSummary = {
     created_at: string
   }[]
   chat_messages?: ChatMessage[]
+  metrics?: {
+    source_count: number
+    version_count: number
+    chat_count: number
+    decision_count: number
+  }
 }
 
 export type VersionSummary = {

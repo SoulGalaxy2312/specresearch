@@ -50,9 +50,19 @@ def test_seed_knowledge_and_chat_history_endpoints():
         history = client.get(f"/api/v1/sessions/{session_id}/chat")
 
     assert knowledge.status_code == 200
-    assert len(knowledge.json()["items"]) >= 4
+    assert len(knowledge.json()["items"]) >= 10
+    detail_id = knowledge.json()["items"][0]["id"]
+    detail = client.get(f"/api/v1/knowledge/{detail_id}")
+    assert detail.status_code == 200
+    assert detail.json()["id"] == detail_id
     assert sessions.status_code == 200
     assert sessions.json()["total"] >= 1
+    assert "chat_count" in sessions.json()["items"][0]
+    seeded_sessions = client.get("/api/v1/sessions?limit=50&offset=0").json()["items"]
+    rich_sessions = [item for item in seeded_sessions if item["raw_idea"]]
+    assert len(rich_sessions) >= 3
+    assert any(item["source_count"] > 0 for item in rich_sessions)
+    assert any(item["chat_count"] > 0 for item in rich_sessions)
     assert chat.status_code == 200
     assert history.status_code == 200
     assert history.json()["items"][0]["content"] == "Ghi chú demo"
