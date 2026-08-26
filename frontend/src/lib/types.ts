@@ -109,6 +109,42 @@ export type JudgeAggregate = {
   revise_count?: number
 }
 
+export type SessionListItem = {
+  session_id: string
+  fsm_state: string
+  raw_idea: string
+  revise_count: number
+  created_at: string
+  updated_at: string
+}
+
+export type SessionListResponse = {
+  items: SessionListItem[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export type KnowledgeItem = {
+  id: string
+  category: string
+  title: string
+  summary: string
+  source_url: string
+  tags: string[]
+  payload: Record<string, unknown>
+  created_at: string
+}
+
+export type ChatMessage = {
+  id: string
+  session_id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  step: string
+  created_at: string
+}
+
 export type DiffItem = {
   section: string
   before: string
@@ -122,6 +158,15 @@ export type SessionSummary = {
   raw_idea: string
   confirmed_interpretation: string
   ast: Record<string, unknown>
+  versions?: VersionSummary[]
+  decisions?: {
+    id: string
+    step: string
+    choice_key: string
+    choice_text: string
+    created_at: string
+  }[]
+  chat_messages?: ChatMessage[]
 }
 
 export type VersionSummary = {

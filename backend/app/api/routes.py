@@ -67,10 +67,41 @@ class ReviseBody(BaseModel):
     other_text: Optional[str] = None
 
 
+class ChatBody(BaseModel):
+    role: str = "user"
+    content: str
+    step: str = ""
+
+
 @router.post("/sessions")
 def create_session(db: Session = Depends(get_db)):
     row = ss.create_session(db)
     return {"session_id": row.id, "fsm_state": row.fsm_state}
+
+
+@router.get("/sessions")
+def list_sessions(
+    limit: int = Query(10, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    rows, total = ss.list_sessions(db, limit=limit, offset=offset)
+    return {
+        "items": [
+            {
+                "session_id": row.id,
+                "fsm_state": row.fsm_state,
+                "raw_idea": row.raw_idea,
+                "revise_count": row.revise_count,
+                "created_at": row.created_at.isoformat(),
+                "updated_at": row.updated_at.isoformat(),
+            }
+            for row in rows
+        ],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @router.get("/sessions/{session_id}")
@@ -86,6 +117,7 @@ def set_idea(session_id: str, body: IdeaBody, db: Session = Depends(get_db)):
     ast = ss.load_ast(row)
     ast.raw_idea = body.idea
     ss.save_ast(db, row, ast)
+    ss.add_chat_message(db, session_id, "user", body.idea, "idea")
     return {"ok": True, "raw_idea": body.idea}
 
 
@@ -121,6 +153,7 @@ def restate_confirm(session_id: str, body: RestateConfirmBody, db: Session = Dep
         )
         ss.save_ast(db, row, ast)
         ss.record_decision(db, session_id, "restate", [], body.action, text)
+        ss.add_chat_message(db, session_id, "assistant", text, "restate")
         try:
             ss.set_state(db, row, FsmState.RESTATED)
         except ValueError:
@@ -469,6 +502,32 @@ def version_diff(session_id: str, version_id: str, db: Session = Depends(get_db)
     before = prev.markdown if prev else ""
     after = current.markdown
     return {"diff": _section_diff(before, after), "from": prev.id if prev else None, "to": current.id}
+
+
+@router.get("/knowledge")
+def knowledge(category: Optional[str] = None, db: Session = Depends(get_db)):
+    return {"items": ss.list_knowledge(db, category=category)}
+
+
+@router.get("/sessions/{session_id}/chat")
+def chat_history(session_id: str, db: Session = Depends(get_db)):
+    _row(db, session_id)
+    return {"items": ss.list_chat_messages(db, session_id)}
+
+
+@router.post("/sessions/{session_id}/chat")
+def add_chat_message(session_id: str, body: ChatBody, db: Session = Depends(get_db)):
+    _row(db, session_id)
+    role = body.role if body.role in {"user", "assistant", "system"} else "user"
+    row = ss.add_chat_message(db, session_id, role, body.content, body.step)
+    return {
+        "id": row.id,
+        "session_id": row.session_id,
+        "role": row.role,
+        "content": row.content,
+        "step": row.step,
+        "created_at": row.created_at.isoformat(),
+    }
 
 
 def _row(db: Session, session_id: str):

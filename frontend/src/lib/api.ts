@@ -6,9 +6,12 @@ import type {
   ExperimentPlan,
   FeasibilityEstimate,
   GapProposal,
+  ChatMessage,
   JudgeAggregate,
   JudgeFinding,
+  KnowledgeItem,
   RelatedWorkEntry,
+  SessionListResponse,
   SessionSummary,
   SourceRef,
   SpecCard,
@@ -92,6 +95,26 @@ export const api = {
 
   getSession: (id: string) =>
     request<SessionSummary>(`/sessions/${id}`),
+
+  listSessions: (limit = 10, offset = 0) =>
+    request<SessionListResponse>(`/sessions?limit=${limit}&offset=${offset}`),
+
+  listKnowledge: (category?: string) =>
+    request<{ items: KnowledgeItem[] }>(
+      `/knowledge${category ? `?category=${encodeURIComponent(category)}` : ''}`
+    ),
+
+  listChat: (id: string) =>
+    request<{ items: ChatMessage[] }>(`/sessions/${id}/chat`),
+
+  addChat: (id: string, content: string, step = '', role: ChatMessage['role'] = 'user') =>
+    request<ChatMessage>(
+      `/sessions/${id}/chat`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ content, step, role }),
+      }
+    ),
 
   setIdea: (id: string, idea: string) =>
     request(

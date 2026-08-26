@@ -20,11 +20,15 @@ import type {
   ExperimentPlan,
   FeasibilityEstimate,
   GapProposal,
+  ChatMessage,
   JudgeAggregate,
   JudgeFinding,
+  KnowledgeItem,
   RelatedWorkEntry,
+  SessionListItem,
   SourceRef,
   SpecCard,
+  SessionSummary,
   VersionSummary,
 } from '../lib/types'
 
@@ -51,6 +55,7 @@ const STEP_GROUPS = [
 ]
 
 export function WizardPage() {
+  const [activeView, setActiveView] = useState<'pipeline' | 'sessions' | 'knowledge' | 'chat'>('pipeline')
   const [sessionId, setSid] = useState<string | null>(getSessionId())
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -77,6 +82,13 @@ export function WizardPage() {
   const [versions, setVersions] = useState<VersionSummary[]>([])
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
   const [versionDiff, setVersionDiff] = useState<DiffItem[]>([])
+  const [sessionList, setSessionList] = useState<SessionListItem[]>([])
+  const [sessionTotal, setSessionTotal] = useState(0)
+  const [sessionOffset, setSessionOffset] = useState(0)
+  const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([])
+  const [knowledgeCategory, setKnowledgeCategory] = useState('')
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatDraft, setChatDraft] = useState('')
 
   const [maxStep, setMaxStep] = useState(0)
   const [stepErrors, setStepErrors] = useState<Set<number>>(new Set())
@@ -86,6 +98,26 @@ export function WizardPage() {
     setMaxStep((m) => Math.max(m, i))
   }, [])
 
+  const applySessionSummary = useCallback((summary: SessionSummary) => {
+    const ast = summary.ast as Record<string, unknown>
+    setSid(summary.session_id)
+    setSessionId(summary.session_id)
+    setIdea(summary.raw_idea || '')
+    setReviseCount(summary.revise_count || 0)
+    setVersions(summary.versions || [])
+    setChatMessages(summary.chat_messages || [])
+    if (Array.isArray(ast.cards)) setCards(ast.cards as SpecCard[])
+    if (Array.isArray(ast.sources)) setSources(ast.sources as SourceRef[])
+    if (Array.isArray(ast.related_work)) setRelatedWork(ast.related_work as RelatedWorkEntry[])
+    if (Array.isArray(ast.contributions)) setContributions(ast.contributions as string[])
+    if (Array.isArray(ast.claim_cards)) setClaimCards(ast.claim_cards as ClaimEvidenceCard[])
+    if (ast.gap && typeof ast.gap === 'object') setGap(ast.gap as GapProposal)
+    if (ast.experiment && typeof ast.experiment === 'object') setExperiment(ast.experiment as ExperimentPlan)
+    if (ast.feasibility && typeof ast.feasibility === 'object') setFeasibility(ast.feasibility as FeasibilityEstimate)
+    if (Array.isArray(ast.judge_findings)) setFindings(ast.judge_findings as JudgeFinding[])
+    if (ast.aggregate && typeof ast.aggregate === 'object') setAggregate(ast.aggregate as JudgeAggregate)
+  }, [])
+
   const ensureSession = useCallback(async () => {
     if (sessionId) return sessionId
     const res = await api.createSession()
@@ -93,6 +125,24 @@ export function WizardPage() {
     setSid(res.session_id)
     return res.session_id
   }, [sessionId])
+
+  const refreshSessions = useCallback(async (offset = sessionOffset) => {
+    const data = await api.listSessions(6, offset)
+    setSessionList(data.items)
+    setSessionTotal(data.total)
+    setSessionOffset(data.offset)
+  }, [sessionOffset])
+
+  const refreshKnowledge = useCallback(async (category = knowledgeCategory) => {
+    const data = await api.listKnowledge(category || undefined)
+    setKnowledgeItems(data.items)
+  }, [knowledgeCategory])
+
+  const refreshChat = useCallback(async () => {
+    const id = await ensureSession()
+    const data = await api.listChat(id)
+    setChatMessages(data.items)
+  }, [ensureSession])
 
   const run = useCallback(async (fn: () => Promise<void>) => {
     setLoading(true)
@@ -130,7 +180,8 @@ export function WizardPage() {
       if (stored) {
         try {
           await api.getSession(stored)
-          setSid(stored)
+          const summary = await api.getSession(stored)
+          applySessionSummary(summary)
           return
         } catch {
           // Session biến mất khỏi backend (vd. xoá file db) — bỏ id cũ đi.
@@ -141,7 +192,7 @@ export function WizardPage() {
       setSessionId(res.session_id)
       setSid(res.session_id)
     })
-  }, [run])
+  }, [applySessionSummary, run])
 
   const content = useMemo(() => {
     switch (step) {
@@ -502,6 +553,20 @@ export function WizardPage() {
     })
 
   const currentGroup = STEP_GROUPS.find((group) => group.steps.includes(step))?.label
+  const completedSteps = Math.max(0, Math.min(maxStep, STEPS.length - 1))
+  const progressPercent = Math.round(((completedSteps + 1) / STEPS.length) * 100)
+  const openView = (view: typeof activeView) => {
+    setActiveView(view)
+    if (view === 'sessions') {
+      run(async () => refreshSessions())
+    }
+    if (view === 'knowledge') {
+      run(async () => refreshKnowledge())
+    }
+    if (view === 'chat') {
+      run(async () => refreshChat())
+    }
+  }
 
   return (
     <div className="app-shell">
@@ -531,6 +596,24 @@ export function WizardPage() {
           </button>
         </div>
       </header>
+
+      <div className="top-tabs" role="tablist" aria-label="Không gian làm việc">
+        {[
+          ['pipeline', 'Pipeline'],
+          ['sessions', 'Sessions'],
+          ['knowledge', 'Knowledge'],
+          ['chat', 'Chat history'],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            className={`top-tab ${activeView === key ? 'active' : ''}`}
+            onClick={() => openView(key as typeof activeView)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <div className="workspace-layout">
         <nav className="step-nav" aria-label="Quy trình xây dựng research specification">
@@ -567,6 +650,24 @@ export function WizardPage() {
         </nav>
 
         <main className="workspace-main" aria-busy={loading}>
+          <div className="pipeline-strip" aria-label="Tổng quan pipeline">
+            <div>
+              <span className="metric-label">Tiến độ</span>
+              <strong>{progressPercent}%</strong>
+            </div>
+            <div>
+              <span className="metric-label">FSM</span>
+              <strong>{STEPS[step]}</strong>
+            </div>
+            <div>
+              <span className="metric-label">Nguồn</span>
+              <strong>{sources.length}</strong>
+            </div>
+            <div>
+              <span className="metric-label">Judge findings</span>
+              <strong>{findings.length}</strong>
+            </div>
+          </div>
           <div className="step-nav-mobile">
             <span className="step-nav-mobile-label">
               {currentGroup} · Bước {step + 1}/{STEPS.length}
@@ -593,7 +694,130 @@ export function WizardPage() {
               {error}
             </div>
           ) : null}
-          {content}
+          {activeView === 'pipeline' ? content : null}
+          {activeView === 'sessions' ? (
+            <section className="panel stack">
+              <div className="panel-heading">
+                <div>
+                  <h2>Sessions</h2>
+                  <p className="muted">Quản lý các phiên làm việc gần đây, không cần đăng nhập.</p>
+                </div>
+                <button className="btn secondary" disabled={loading} onClick={() => run(async () => refreshSessions(0))}>
+                  Tải lại
+                </button>
+              </div>
+              <div className="session-list">
+                {sessionList.map((item) => (
+                  <button
+                    className={`session-row ${item.session_id === sessionId ? 'active' : ''}`}
+                    type="button"
+                    key={item.session_id}
+                    onClick={() =>
+                      run(async () => {
+                        const summary = await api.getSession(item.session_id)
+                        applySessionSummary(summary)
+                        setActiveView('pipeline')
+                      })
+                    }
+                  >
+                    <span>
+                      <strong>{item.raw_idea || 'Session chưa có ý tưởng'}</strong>
+                      <small>{item.session_id}</small>
+                    </span>
+                    <span className="session-row-meta">
+                      {item.fsm_state} · revise {item.revise_count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="pagination-row">
+                <button className="btn secondary" disabled={sessionOffset === 0 || loading} onClick={() => run(async () => refreshSessions(Math.max(0, sessionOffset - 6)))}>
+                  Trước
+                </button>
+                <span>
+                  {sessionTotal ? sessionOffset + 1 : 0}-{Math.min(sessionOffset + 6, sessionTotal)} / {sessionTotal}
+                </span>
+                <button className="btn secondary" disabled={sessionOffset + 6 >= sessionTotal || loading} onClick={() => run(async () => refreshSessions(sessionOffset + 6))}>
+                  Sau
+                </button>
+              </div>
+            </section>
+          ) : null}
+          {activeView === 'knowledge' ? (
+            <section className="panel stack">
+              <div className="panel-heading">
+                <div>
+                  <h2>Backend knowledge</h2>
+                  <p className="muted">Dữ liệu seed có sẵn: research nền, verifier, multi-judge và design system.</p>
+                </div>
+                <select value={knowledgeCategory} onChange={(e) => setKnowledgeCategory(e.target.value)}>
+                  <option value="">Tất cả</option>
+                  <option value="research">Research</option>
+                  <option value="backend-method">Backend method</option>
+                  <option value="design-system">Design system</option>
+                </select>
+              </div>
+              <button className="btn secondary" disabled={loading} onClick={() => run(async () => refreshKnowledge())}>
+                Lọc dữ liệu
+              </button>
+              <div className="knowledge-grid">
+                {knowledgeItems.map((item) => (
+                  <article className="knowledge-card" key={item.id}>
+                    <div className="knowledge-card-top">
+                      <span className="badge PROPOSED">{item.category}</span>
+                      <a href={item.source_url} target="_blank" rel="noreferrer">Nguồn</a>
+                    </div>
+                    <h3>{item.title}</h3>
+                    <p>{item.summary}</p>
+                    <div className="tag-row">
+                      {item.tags.map((tag) => <span key={tag}>{tag}</span>)}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
+          {activeView === 'chat' ? (
+            <section className="panel stack">
+              <div className="panel-heading">
+                <div>
+                  <h2>Lịch sử trò chuyện</h2>
+                  <p className="muted">Ghi chú trao đổi theo session hiện tại, không cần authentication.</p>
+                </div>
+                <button className="btn secondary" disabled={loading} onClick={() => run(async () => refreshChat())}>
+                  Tải lại
+                </button>
+              </div>
+              <div className="chat-log">
+                {chatMessages.length ? chatMessages.map((message) => (
+                  <article className={`chat-message ${message.role}`} key={message.id}>
+                    <div>
+                      <strong>{message.role}</strong>
+                      <small>{message.step || 'general'} · {new Date(message.created_at).toLocaleString()}</small>
+                    </div>
+                    <p>{message.content}</p>
+                  </article>
+                )) : <p className="muted">Chưa có lịch sử trò chuyện cho session này.</p>}
+              </div>
+              <div className="chat-compose">
+                <textarea value={chatDraft} placeholder="Ghi chú hoặc câu hỏi trong session này..." onChange={(e) => setChatDraft(e.target.value)} />
+                <button
+                  className="btn"
+                  disabled={!chatDraft.trim() || loading}
+                  onClick={() =>
+                    run(async () => {
+                      const id = await ensureSession()
+                      const saved = await api.addChat(id, chatDraft.trim(), STEPS[step])
+                      setChatMessages((items) => [...items, saved])
+                      setChatDraft('')
+                    })
+                  }
+                >
+                  Lưu vào lịch sử
+                </button>
+              </div>
+            </section>
+          ) : null}
         </main>
       </div>
     </div>

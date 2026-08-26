@@ -7,7 +7,16 @@ from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
-from app.db.models import DecisionRow, JudgeFindingRow, JudgeRunRow, SessionRow, SourceRow, SpecVersionRow
+from app.db.models import (
+    ChatMessageRow,
+    DecisionRow,
+    JudgeFindingRow,
+    JudgeRunRow,
+    KnowledgeItemRow,
+    SessionRow,
+    SourceRow,
+    SpecVersionRow,
+)
 from app.domain.spec_ast import FsmState, SpecAST, can_transition
 
 
@@ -32,6 +41,11 @@ def get_session(db: Session, session_id: str) -> SessionRow:
     if not row:
         raise KeyError("Session not found")
     return row
+
+
+def list_sessions(db: Session, limit: int = 10, offset: int = 0) -> tuple[list[SessionRow], int]:
+    query = db.query(SessionRow).order_by(SessionRow.updated_at.desc())
+    return query.offset(offset).limit(limit).all(), query.count()
 
 
 def load_ast(row: SessionRow) -> SpecAST:
@@ -203,10 +217,71 @@ def get_latest_judge_run(db: Session, session_id: str) -> JudgeRunRow | None:
     )
 
 
+def list_knowledge(db: Session, category: str | None = None) -> list[dict[str, Any]]:
+    query = db.query(KnowledgeItemRow).order_by(KnowledgeItemRow.category, KnowledgeItemRow.title)
+    if category:
+        query = query.filter(KnowledgeItemRow.category == category)
+    rows = query.all()
+    return [
+        {
+            "id": row.id,
+            "category": row.category,
+            "title": row.title,
+            "summary": row.summary,
+            "source_url": row.source_url,
+            "tags": json.loads(row.tags_json or "[]"),
+            "payload": json.loads(row.payload_json or "{}"),
+            "created_at": row.created_at.isoformat(),
+        }
+        for row in rows
+    ]
+
+
+def add_chat_message(
+    db: Session,
+    session_id: str,
+    role: str,
+    content: str,
+    step: str = "",
+) -> ChatMessageRow:
+    row = ChatMessageRow(
+        id=str(uuid4()),
+        session_id=session_id,
+        role=role,
+        content=content,
+        step=step,
+    )
+    db.add(row)
+    db.flush()
+    db.refresh(row)
+    return row
+
+
+def list_chat_messages(db: Session, session_id: str) -> list[dict[str, Any]]:
+    rows = (
+        db.query(ChatMessageRow)
+        .filter(ChatMessageRow.session_id == session_id)
+        .order_by(ChatMessageRow.created_at.asc())
+        .all()
+    )
+    return [
+        {
+            "id": row.id,
+            "session_id": row.session_id,
+            "role": row.role,
+            "content": row.content,
+            "step": row.step,
+            "created_at": row.created_at.isoformat(),
+        }
+        for row in rows
+    ]
+
+
 def session_summary(db: Session, row: SessionRow) -> dict[str, Any]:
     ast = load_ast(row)
     versions = list_versions(db, row.id)
     decisions = db.query(DecisionRow).filter(DecisionRow.session_id == row.id).order_by(DecisionRow.created_at).all()
+    chat_messages = list_chat_messages(db, row.id)
     return {
         "session_id": row.id,
         "fsm_state": row.fsm_state,
@@ -228,4 +303,5 @@ def session_summary(db: Session, row: SessionRow) -> dict[str, Any]:
             }
             for d in decisions
         ],
+        "chat_messages": chat_messages,
     }
